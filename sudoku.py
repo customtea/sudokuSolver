@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 TABLESIZE = 9
 
 constset = set([0,1,2,3,4,5,6,7,8,9])
@@ -39,8 +40,8 @@ def main():
                             table[y][x] = hintmap[y][x][0]
                             print("MARGED",x+1,y+1,table[y][x])
 
-        if(updateCount >= 1500): #とりあえず、3000回更新しても何もなかったら強制終了
-            print("Resolving Failed")
+        if(updateCount >= 1500): #とりあえず、1500回更新しても何もなかったら強制終了
+            print("Solving Failed")
             break
     print2array()
     print("Update Count " ,updateCount)
@@ -67,7 +68,7 @@ def inputTable(): #標準入力でテーブルを受け取る
         table[i] = [int(s) for s in input("Line" + str(i) + ">> ").split(" ")]
 
 
-def marge(x, y): #差集合により、
+def marge(x, y): #差集合により、唯一の要素があった場合には更新する
     #x
     tmpset = set(hintmap[y][x])
     li = list(range(TABLESIZE))
@@ -98,6 +99,16 @@ def marge(x, y): #差集合により、
     if(len(tmpset) == 1):
         hintmap[y][x] = list(tmpset)
         return
+
+
+def pair(x, y): #同一囲いの中に要素が2つのものが2つ存在するとき、確定しているため、同一囲いのうちその2要素を削除できる
+    tmpL = []
+    for tl in around9hintmap(x,y):
+        tmpL.extend(tl)
+    
+        
+
+
 
 def update(x, y): #候補の更新
     updateYTable()
