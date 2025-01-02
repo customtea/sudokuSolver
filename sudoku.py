@@ -2,6 +2,7 @@
 import typing
 import time
 from term_printer import Color, cprint, StdText, Format
+import json
 
 TABLESIZE = 9
 CONSTSET = set([0,1,2,3,4,5,6,7,8,9])
@@ -34,10 +35,28 @@ class SudokuSolver():
             self.hintmap.append([[]] * TABLESIZE)
 
         self.table: typing.List[typing.List[int]]  = [[],[],[],[],[],[],[],[],[]]
-        self.yTable: typing.List[typing.List[int]] = [[],[],[],[],[],[],[],[],[]]
+        self.y_table: typing.List[typing.List[int]] = [[],[],[],[],[],[],[],[],[]]
         
         self.table = table
-        # self.yTable = self._updateYTable()
+    
+    def save(self, filename):
+        table = self.table
+        ytable = self.y_table
+        hintmap = self.hintmap
+        td = {
+            "table": table,
+            "ytable":ytable,
+            "hint": hintmap
+        }
+        with open(filename, "w") as f:
+            json.dump(td, f)
+    
+    def load(self, filename):
+        with open(filename) as f:
+            td = json.load(f)
+        self.table = td["table"]
+        self.y_table = td["ytable"]
+        self.hintmap = td["hint"]
 
     def solve(self):
         clear_screen()
@@ -74,8 +93,9 @@ class SudokuSolver():
 
             if(self.updateCount >= 1500): #とりあえず、1500回更新しても何もなかったら強制終了
                 print("Solving Failed")
+                self.save("fail")
                 break
-        print("Final")
+        # print("Final")
         # self.print2array()
         self.print2array_v2()
         # clear_screen()
@@ -118,7 +138,7 @@ class SudokuSolver():
         self._sync_ytable()
 
         res = CONSTSET - set(self.table[y]) # 横方向
-        res = res - set(self.yTable[x]) # 縦方向
+        res = res - set(self.y_table[x]) # 縦方向
         res = res - set(self.around9table(x,y)) #マス
 
         return list(res)
@@ -128,7 +148,7 @@ class SudokuSolver():
             res = []
             for x in range(TABLESIZE):
                 res.append(self.table[x][y])
-            self.yTable[y] = res
+            self.y_table[y] = res
 
     def getSquareP(self, x, y): #座標を囲みの中心に変換する
         if(x in [0,1,2] and y in [6,7,8]):
@@ -230,7 +250,7 @@ class SudokuSolver():
             cprint("".join(p_row3))
             cprint("+-------"*9+"+")
         # time.sleep(1)
-        time.sleep(0.1)
+        # time.sleep(0.1)
         # time.sleep(0.03)
         # os.system("cls")
     
@@ -355,16 +375,18 @@ if __name__ == "__main__":
     #inputTable()
     #table = highT
     table = expartT
-    table = [
-        [1,0,0,0,4,0,7,0,0],
-        [0,0,2,0,0,5,9,0,0],
-        [0,3,0,0,0,0,0,0,0],
-        [0,5,0,0,0,9,0,0,8],
-        [0,0,7,0,0,0,1,0,0],
-        [2,0,0,3,0,0,0,7,0],
-        [0,0,0,0,0,0,0,2,0],
-        [0,0,5,8,0,0,6,0,0],
-        [0,0,4,0,5,0,0,0,3],
-    ]
+    # table = [
+    #     [1,0,0,0,4,0,7,0,0],
+    #     [0,0,2,0,0,5,9,0,0],
+    #     [0,3,0,0,0,0,0,0,0],
+    #     [0,5,0,0,0,9,0,0,8],
+    #     [0,0,7,0,0,0,1,0,0],
+    #     [2,0,0,3,0,0,0,7,0],
+    #     [0,0,0,0,0,0,0,2,0],
+    #     [0,0,5,8,0,0,6,0,0],
+    #     [0,0,4,0,5,0,0,0,3],
+    # ]
     sd = SudokuSolver(table)
+    # sd.load("fail")
+    # sd.print2array_v2()
     sd.solve()
