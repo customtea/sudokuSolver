@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import typing
 import time
-from term_printer import Color, cprint
+from term_printer import Color, cprint, StdText, Format
 
 TABLESIZE = 9
 CONSTSET = set([0,1,2,3,4,5,6,7,8,9])
@@ -51,11 +51,11 @@ class SudokuSolver():
                         self.updateCount += 1
                         self.step_count += 1
                         print(f"STEP:{self.step_count:04}  {x+1} {y+1}", " "*15)
-                        self.print2array_v2()
+                        self.print2array_v2(targety=y, targetx=x, color=Color.BG_GREEN)
                         if(len(self.hintmap[y][x]) == 1):
                             table[y][x] = self.hintmap[y][x][0]
                             print(f"STEP:{self.step_count:04}  UPDATE",x+1,y+1,table[y][x])
-                            self.print2array_v2()
+                            self.print2array_v2(targety=y, targetx=x, color=Color.BG_MAGENTA)
                             checked +=1
 
             if(checked == 0): #値が上の方法では更新できなかったときに処理を書く
@@ -66,11 +66,11 @@ class SudokuSolver():
                             self.margeCount += 1
                             self.step_count += 1
                             print(f"STEP:{self.step_count:04}  {x+1} {y+1}", " "*15)
-                            self.print2array_v2()
+                            self.print2array_v2(targety=y, targetx=x, color=Color.BG_BLUE)
                             if(len(self.hintmap[y][x]) == 1):
                                 table[y][x] = self.hintmap[y][x][0]
                                 print(f"STEP:{self.step_count:04}  MARGED",x+1,y+1,table[y][x])
-                                self.print2array_v2()
+                                self.print2array_v2(targety=y, targetx=x, color=Color.BG_RED)
 
             if(self.updateCount >= 1500): #とりあえず、1500回更新しても何もなかったら強制終了
                 print("Solving Failed")
@@ -192,27 +192,45 @@ class SudokuSolver():
             print("")
         print()
 
-    def print2array_v2(self):
+    def print2array_v2(self, targetx=0,targety=0, color=Color.WHITE):
+        # print(targety,targetx)
+        cprint("+-------"*9+"+")
         for i in range(TABLESIZE):
-            p_row1 = []
-            p_row2 = []
-            p_row3 = []
+            p_row1 = ["|"]
+            p_row2 = ["|"]
+            p_row3 = ["|"]
             for j in range(TABLESIZE):
                 h = self.hintmap[i][j]
                 x = self.table[i][j]
                 r1,r2,r3 = self.hint_square(x, h)
-                p_row1.extend(r1)
-                p_row2.extend(r2)
-                p_row3.extend(r3)
+                if not x == 0:
+                    r1 = str(StdText("".join(r1), Format.REVERSE))
+                    r2 = str(StdText("".join(r2), Format.REVERSE))
+                    r3 = str(StdText("".join(r3), Format.REVERSE))
+                    p_row1.append(r1)
+                    p_row2.append(r2)
+                    p_row3.append(r3)
+                elif j == targetx and i == targety:
+                    r1 = str(StdText("".join(r1), color))
+                    r2 = str(StdText("".join(r2), color))
+                    r3 = str(StdText("".join(r3), color))
+                    p_row1.append(r1)
+                    p_row2.append(r2)
+                    p_row3.append(r3)
+                else:
+                    p_row1.extend(r1)
+                    p_row2.extend(r2)
+                    p_row3.extend(r3)
                 p_row1.append("|")
                 p_row2.append("|")
                 p_row3.append("|")
-            print("".join(p_row1))
-            print("".join(p_row2))
-            print("".join(p_row3))
-            print("-"*len("".join(map(str, p_row1))))
-        # time.sleep(0.1)
-        time.sleep(0.03)
+            cprint("".join(p_row1))
+            cprint("".join(p_row2))
+            cprint("".join(p_row3))
+            cprint("+-------"*9+"+")
+        # time.sleep(1)
+        time.sleep(0.1)
+        # time.sleep(0.03)
         # os.system("cls")
         cursor_top()
     
