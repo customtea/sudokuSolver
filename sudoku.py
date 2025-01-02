@@ -194,6 +194,7 @@ class SudokuSolver():
 
     def print2array_v2(self, targetx=0,targety=0, color=Color.WHITE):
         # print(targety,targetx)
+        cursor_top()
         cprint("+-------"*9+"+")
         for i in range(TABLESIZE):
             p_row1 = ["|"]
@@ -232,7 +233,6 @@ class SudokuSolver():
         time.sleep(0.1)
         # time.sleep(0.03)
         # os.system("cls")
-        cursor_top()
     
     def hint_square(self, ans, hint):
         SP = "  "
