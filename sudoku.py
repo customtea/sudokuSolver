@@ -57,11 +57,12 @@ class SudokuSolver():
 
         self.table: typing.List[typing.List[int]]  = [[],[],[],[],[],[],[],[],[]]
         self.y_table: typing.List[typing.List[int]] = [[],[],[],[],[],[],[],[],[]]
-        self.pre_table_hash = ""
+        self.pre_table_hash = {}
         self.failed_count = 0
         self.failed_next_stack = []
         self.next_stack_hashs = {}
-        self.spec_table_color_table = {}
+        self.spec_color_table = {}
+        self.guess_depth = 0
         
         self.table = table
     
@@ -69,7 +70,7 @@ class SudokuSolver():
         table = self.table
         ytable = self.y_table
         hintmap = self.hintmap
-        colormap = self.spec_table_color_table
+        colormap = self.spec_color_table
         td = {
             "table": table,
             "ytable":ytable,
@@ -79,6 +80,10 @@ class SudokuSolver():
         return td
 
     def _load(self, td):
+        del self.table
+        del self.y_table
+        del self.hintmap
+        
         self.table = td["table"]
         self.y_table = td["ytable"]
         self.hintmap = td["hint"]
@@ -96,7 +101,14 @@ class SudokuSolver():
         self.hintmap = td["hint"]
     
     def tablehash(self):
-        td = self._save()
+        table = self.table
+        ytable = self.y_table
+        hintmap = self.hintmap
+        td = {
+            "table": table,
+            "ytable":ytable,
+            "hint": hintmap,
+        }
         s = json.dumps(td)
         return hashlib.sha256(s.encode()).hexdigest()
 
@@ -111,16 +123,13 @@ class SudokuSolver():
                         self.hintmap[y][x]=self.update(x,y)
                         self.updateCount += 1
                         self.step_count += 1
-                        print(f"STEP:{self.step_count:04}  {x+1} {y+1}", " "*15)
                         self.print2array_v2(targety=y, targetx=x, color=Color.BG_GREEN)
+                        # print(f"STEP:{self.step_count:07}  {x+1} {y+1}", " "*15)
                         if(len(self.hintmap[y][x]) == 1):
-                            table[y][x] = self.hintmap[y][x][0]
-                            # print(self.hintmap[y][x])
-                            print(f"STEP:{self.step_count:04}  UPDATE",x+1,y+1,table[y][x])
-                            self.print2array_v2(targety=y, targetx=x, color=Color.BG_MAGENTA)
+                            self.table[y][x] = self.hintmap[y][x][0]
+                            self.print2array_v2(targety=y, targetx=x, color=Color.BG_BRIGHT_GREEN)
+                            # print(f"STEP:{self.step_count:07}  UPDATE",x+1,y+1,table[y][x])
                             checked +=1
-                        if(len(self.hintmap[y][x]) == 0):
-                            continue
 
             if(checked == 0): #値が上の方法では更新できなかったときに処理を書く
                 for y in range(TABLESIZE):
@@ -129,20 +138,19 @@ class SudokuSolver():
                             self.marge(x,y)
                             self.margeCount += 1
                             self.step_count += 1
-                            print(f"STEP:{self.step_count:04}  {x+1} {y+1}", " "*15)
                             self.print2array_v2(targety=y, targetx=x, color=Color.BG_BLUE)
+                            # print(f"STEP:{self.step_count:07}  {x+1} {y+1}", " "*15)
                             if(len(self.hintmap[y][x]) == 1):
-                                table[y][x] = self.hintmap[y][x][0]
-                                # print(self.hintmap[y][x])
-                                print(f"STEP:{self.step_count:04}  MARGED",x+1,y+1,table[y][x])
-                                self.print2array_v2(targety=y, targetx=x, color=Color.BG_CYAN)
-                            if(len(self.hintmap[y][x]) == 0):
-                                continue
+                                self.table[y][x] = self.hintmap[y][x][0]
+                                self.print2array_v2(targety=y, targetx=x, color=Color.BG_BRIGHT_BLUE)
+                                # print(f"STEP:{self.step_count:07}  MARGED",x+1,y+1,table[y][x])
 
             hsh = self.tablehash()
-            if(hsh == self.pre_table_hash):
+            # print(hsh, len(self.pre_table_hash))
+            
+            if(hsh in self.pre_table_hash):
                 self.failed_count += 1
-                if self.failed_count >= 2:
+                if self.failed_count >= 1:
                     self.failed_count = 0
                     # print("Next Step")
                     # self.savefile("fail.json")
@@ -155,56 +163,77 @@ class SudokuSolver():
                     self.guess_deploy()
                     # print(self.failed_next_stack)
             else:
-                self.pre_table_hash = hsh
+                self.pre_table_hash[hsh] = True
         else:
-            print("Solved")
+            if self.is_clear_correct():
+                print("Solved")
             # self.print2array()
-            self.print2array_v2()
-            print(self.next_stack_hashs)
-            print(self.failed_next_stack)
+            # self.print2array_v2()
+            # print(self.next_stack_hashs)
+            # print(self.failed_next_stack)
             # clear_screen()
             # print("Update Count " ,self.updateCount)
     
     def guess(self):
-        for i in range(TABLESIZE):
-            for j in range(TABLESIZE):
+        # if self.guess_depth >= 10:
+        if not self.is_valid_table():
+            return
+        self.guess_depth += 1
+        for i in (range(TABLESIZE)):
+            for j in (range(TABLESIZE)):
                 h = self.hintmap[i][j]
                 if len(h) == 2:
                     # print(i, j, h)
                     td = self._save()
                     td = deepcopy(td)
                     hsh = self.tablehash()
-                    hsh = f"{hsh}{i}{j}{h[0]}"
+
+                    hsh1 = f"{hsh}{i}{j}{h[0]}"
                     if not hsh in self.next_stack_hashs:
-                        self.next_stack_hashs[hsh] = True
-                        self.failed_next_stack.append(FailedNextStack(j, i, h[0], td, hsh))
-                    hsh = f"{hsh}{i}{j}{h[1]}"
+                        self.next_stack_hashs[hsh1] = True
+                        fns = FailedNextStack(j, i, h[0], td, hsh)
+                        # print(fns)
+                        self.failed_next_stack.append(fns)
+                    hsh2 = f"{hsh}{i}{j}{h[1]}"
                     if not hsh in self.next_stack_hashs:
-                        self.next_stack_hashs[hsh] = True
-                        self.failed_next_stack.append(FailedNextStack(j, i, h[1], td, hsh))
+                        self.next_stack_hashs[hsh2] = True
+                        fns = FailedNextStack(j, i, h[1], td, hsh)
+                        # print(fns)
+                        self.failed_next_stack.append(fns)
     
     def guess_deploy(self):
         fns: FailedNextStack
-        fns = self.failed_next_stack.pop(-1)
+        fns = self.failed_next_stack.pop()
+        del self.next_stack_hashs[f"{fns.hsh}{fns.y}{fns.x}{fns.choice}"]
+        # input()
+        # clear_screen()
+        # print(fns)
+        # input()
         x = fns.x
         y = fns.y
         t = fns.choice
         td = fns.tabledat
+        colortbl = td["colormap"]
+        del self.spec_color_table
+        self.spec_color_table = colortbl
         self._load(td)
         self.table[y][x] = t
         self.set_spec_color(x, y, Color.BG_BRIGHT_RED)
+        self.pre_table_hash.clear()
+        self.pre_table_hash[self.tablehash()] = True
         # input()
         # clear_screen()
         # self.print2array_v2()
-        print("\n\n",len(self.failed_next_stack))
+        # print("\n\n",len(self.failed_next_stack))
+        # print(self.next_stack_hashs)
 
     def set_spec_color(self, x, y, color:Color):
         key = f"{y}_{x}"
-        self.spec_table_color_table[key] = color
+        self.spec_color_table[key] = color
     
     def remove_spec_color(self, x, y):
         key = f"{y}_{x}"
-        del self.spec_table_color_table[key]
+        del self.spec_color_table[key]
 
     
     def marge(self, x, y): #差集合により、唯一の要素があった場合には更新する
@@ -305,6 +334,36 @@ class SudokuSolver():
                 if(self.table[x][y] == 0):
                     return False
         return True
+    
+    def is_clear_correct(self):
+        for x in range(TABLESIZE):
+            for y in range(TABLESIZE):
+                res = set([1,2,3,4,5,6,7,8,9]) - set(self.table[y]) # 横方向
+                res = res - set(self.y_table[x]) # 縦方向
+                res = res - set(self.around9table(x,y)) #マス
+                if res == 0:
+                    return False
+        return True
+    
+    def is_valid_table(self):
+        for x in range(TABLESIZE):
+            for y in range(TABLESIZE):
+                if self.is_doubling_list(self.table[y]):
+                    return False
+                if self.is_doubling_list(self.y_table[x]):
+                    return False
+                if self.is_doubling_list(self.around9table(x,y)):
+                    return False
+        return True
+    
+    def is_doubling_list(self, li: list):
+        tli = []
+        for i in li:
+            if i == 0:
+                continue
+            tli.append(i)
+        return not len(tli) == len(set(tli))
+
 
     def print2array(self): #2次元配列をきれいに表示するだけ
         for i in range(TABLESIZE):
@@ -318,6 +377,7 @@ class SudokuSolver():
         print()
 
     def print2array_v2(self, targetx=0,targety=0, color=Color.WHITE):
+        return
         # print(targety,targetx)
         cursor_top()
         cprint("+-------"*9+"+")
@@ -330,8 +390,8 @@ class SudokuSolver():
                 ans = self.table[i][j]
                 key = f"{i}_{j}"
                 r1,r2,r3 = self.hint_square(ans, hint)
-                if key in self.spec_table_color_table:
-                    color = self.spec_table_color_table[key]
+                if key in self.spec_color_table:
+                    color = self.spec_color_table[key]
                     r1 = str(StdText("".join(r1), color))
                     r2 = str(StdText("".join(r2), color))
                     r3 = str(StdText("".join(r3), color))
