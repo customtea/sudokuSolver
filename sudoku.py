@@ -6,6 +6,7 @@ import json
 import hashlib
 from typing import NamedTuple
 from copy import deepcopy
+from coloredhex import coloredhex
 
 TABLESIZE = 9
 CONSTSET = set([0,1,2,3,4,5,6,7,8,9])
@@ -71,11 +72,15 @@ class SudokuSolver():
         ytable = self.y_table
         hintmap = self.hintmap
         colormap = self.spec_color_table
+        pre_table_hash = self.pre_table_hash
+        failed_next_stack = self.failed_next_stack
         td = {
             "table": table,
             "ytable":ytable,
             "hint": hintmap,
-            "colormap" : colormap
+            "colormap" : colormap,
+            "pretablehash" : pre_table_hash,
+            "failednextstack" : failed_next_stack
         }
         return td
 
@@ -117,6 +122,9 @@ class SudokuSolver():
         self.step_count = 0
         while(not self.is_clear()):
             checked = 0
+            if not self.is_valid_table():
+                # print("DEPLOY")
+                self.guess_deploy()
             for y in range(TABLESIZE):
                 for x in range(TABLESIZE):
                     if(table[y][x] == 0):
@@ -124,11 +132,11 @@ class SudokuSolver():
                         self.updateCount += 1
                         self.step_count += 1
                         self.print2array_v2(targety=y, targetx=x, color=Color.BG_GREEN)
-                        # print(f"STEP:{self.step_count:07}  {x+1} {y+1}", " "*15)
+                        print(f"STEP:{self.step_count:07}  {x+1} {y+1}", " "*15)
                         if(len(self.hintmap[y][x]) == 1):
                             self.table[y][x] = self.hintmap[y][x][0]
                             self.print2array_v2(targety=y, targetx=x, color=Color.BG_BRIGHT_GREEN)
-                            # print(f"STEP:{self.step_count:07}  UPDATE",x+1,y+1,table[y][x])
+                            print(f"STEP:{self.step_count:07}  UPDATE",x+1,y+1,table[y][x])
                             checked +=1
 
             if(checked == 0): #値が上の方法では更新できなかったときに処理を書く
@@ -139,15 +147,14 @@ class SudokuSolver():
                             self.margeCount += 1
                             self.step_count += 1
                             self.print2array_v2(targety=y, targetx=x, color=Color.BG_BLUE)
-                            # print(f"STEP:{self.step_count:07}  {x+1} {y+1}", " "*15)
+                            print(f"STEP:{self.step_count:07}  {x+1} {y+1}", " "*15)
                             if(len(self.hintmap[y][x]) == 1):
                                 self.table[y][x] = self.hintmap[y][x][0]
                                 self.print2array_v2(targety=y, targetx=x, color=Color.BG_BRIGHT_BLUE)
-                                # print(f"STEP:{self.step_count:07}  MARGED",x+1,y+1,table[y][x])
+                                print(f"STEP:{self.step_count:07}  MARGED",x+1,y+1,table[y][x])
 
             hsh = self.tablehash()
-            # print(hsh, len(self.pre_table_hash))
-            
+            # print(coloredhex(hsh), len(self.pre_table_hash))
             if(hsh in self.pre_table_hash):
                 self.failed_count += 1
                 if self.failed_count >= 1:
@@ -167,6 +174,7 @@ class SudokuSolver():
         else:
             if self.is_clear_correct():
                 print("Solved")
+                self.print2array_v2()
             # self.print2array()
             # self.print2array_v2()
             # print(self.next_stack_hashs)
@@ -179,8 +187,8 @@ class SudokuSolver():
         if not self.is_valid_table():
             return
         self.guess_depth += 1
-        for i in (range(TABLESIZE)):
-            for j in (range(TABLESIZE)):
+        for i in reversed(range(TABLESIZE)):
+            for j in reversed(range(TABLESIZE)):
                 h = self.hintmap[i][j]
                 if len(h) == 2:
                     # print(i, j, h)
@@ -203,6 +211,9 @@ class SudokuSolver():
     
     def guess_deploy(self):
         fns: FailedNextStack
+        if len(self.failed_next_stack) == 0:
+            print("Solving Failed")
+            return
         fns = self.failed_next_stack.pop()
         del self.next_stack_hashs[f"{fns.hsh}{fns.y}{fns.x}{fns.choice}"]
         # input()
@@ -219,7 +230,7 @@ class SudokuSolver():
         self._load(td)
         self.table[y][x] = t
         self.set_spec_color(x, y, Color.BG_BRIGHT_RED)
-        self.pre_table_hash.clear()
+        # self.pre_table_hash.clear()
         self.pre_table_hash[self.tablehash()] = True
         # input()
         # clear_screen()
@@ -345,9 +356,13 @@ class SudokuSolver():
                     return False
         return True
     
-    def is_valid_table(self):
+    def is_valid_table(self) -> bool: 
         for x in range(TABLESIZE):
             for y in range(TABLESIZE):
+                # print(self.hintmap[7][8], len(self.hintmap[7][8]), self.table[7][8])
+                # print(self.table[7][8] == 0 and len(self.hintmap[7][8]) == 0)
+                if self.table[y][x] == 0 and len(self.hintmap[y][x]) == 0:
+                    return False
                 if self.is_doubling_list(self.table[y]):
                     return False
                 if self.is_doubling_list(self.y_table[x]):
@@ -377,7 +392,7 @@ class SudokuSolver():
         print()
 
     def print2array_v2(self, targetx=0,targety=0, color=Color.WHITE):
-        return
+        # return
         # print(targety,targetx)
         cursor_top()
         cprint("+-------"*9+"+")
@@ -563,4 +578,9 @@ if __name__ == "__main__":
     sd = SudokuSolver(table)
     # sd.load("fail")
     # sd.print2array_v2()
-    sd.solve()
+    try:
+        sd.solve()
+    except KeyboardInterrupt:
+        sd.savefile("Interrupt.json")
+        pass
+        # print(sd.table[7][8], sd.hintmap[7][8])
