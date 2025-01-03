@@ -494,8 +494,20 @@ class SudokuSolver():
 
 
 def inputTable(): #標準入力でテーブルを受け取る
+    table = []
     for i in range(TABLESIZE):
-        table[i] = [int(s) for s in input("Line" + str(i) + ">> ").split(" ")]
+        sin = input(f"Line {i} >> ")
+        tl = []
+        for c in sin:
+            if c in ["1","2","3","4","5","6","7","8","9","0"]:
+                t = int(c)
+            else:
+                t = 0
+            tl.append(t)
+        table.append(tl)
+        del tl
+    return table
+        # table[i] = [int(s) for s in input("Line" + str(i) + ">> ")]
 
 
 def rprint(x,y,rx,ry,text):
@@ -563,18 +575,20 @@ expartT = [
 if __name__ == "__main__":
     #inputTable()
     #table = highT
-    table = [
-        [1,0,0,0,4,0,7,0,0],
-        [0,0,2,0,0,5,9,0,0],
-        [0,3,0,0,0,0,0,0,0],
-        [0,5,0,0,0,9,0,0,8],
-        [0,0,7,0,0,0,1,0,0],
-        [2,0,0,3,0,0,0,7,0],
-        [0,0,0,0,0,0,0,2,0],
-        [0,0,5,8,0,0,6,0,0],
-        [0,0,4,0,5,0,0,0,3],
-    ]
-    table = expartT
+    # table = [
+    #     [1,0,0,0,4,0,7,0,0],
+    #     [0,0,2,0,0,5,9,0,0],
+    #     [0,3,0,0,0,0,0,0,0],
+    #     [0,5,0,0,0,9,0,0,8],
+    #     [0,0,7,0,0,0,1,0,0],
+    #     [2,0,0,3,0,0,0,7,0],
+    #     [0,0,0,0,0,0,0,2,0],
+    #     [0,0,5,8,0,0,6,0,0],
+    #     [0,0,4,0,5,0,0,0,3],
+    # ]
+    # table = expartT
+    table = inputTable()
+    s = json.dumps(table)
     sd = SudokuSolver(table)
     # sd.load("fail")
     # sd.print2array_v2()
